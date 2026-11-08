@@ -1,0 +1,33 @@
+name: PhoneLink
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  PhoneLink:
+    type: application
+    platform: iOS
+    sources:
+      - PhoneLink
+    info:
+      path: PhoneLink/Info.plist
+      properties:
+        CFBundleDisplayName: PhoneLink
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIBackgroundModes: [location]
+        NSLocationAlwaysAndWhenInUseUsageDescription: >-
+          Streams GPS speed and heading to your car's dashboard, also while the
+          phone is locked.
+        NSLocationWhenInUseUsageDescription: >-
+          Streams GPS speed and heading to your car's dashboard.
+        NSLocalNetworkUsageDescription: >-
+          Connects to your car's head unit over your Personal Hotspot.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.phonelink
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
