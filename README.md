@@ -8,10 +8,12 @@ Android head-unit receiver + iPhone companion app + test harness for protocol v1
 - **[PhoneLinkClient.kt](./android/PhoneLinkClient.kt)** — WebSocket client (OkHttp) to the iPhone app:
   sends `track`, receives `artwork` (JSON header + one binary JPEG frame) and `gps` at 1 Hz;
   auto-reconnect with capped backoff; stale-artwork discard via `seq`.
+- **[BleLinkClient.kt](./android/BleLinkClient.kt)** — the same link over **Bluetooth LE**
+  (no hotspot needed); same `PhoneLinkClient.Listener` interface.
 - **[LinkForegroundService.kt](./android/LinkForegroundService.kt)** — glue + `DashboardBus`
   observable state with 3-sample speed smoothing.
 - **[ios/](./ios/README.md)** — the **PhoneLink iPhone app** (SwiftUI): WebSocket server,
-  background GPS streaming, and artwork lookup chain **YouTube Music → iTunes**.
+  **BLE GATT server**, background GPS streaming, and artwork lookup chain **YouTube Music → iTunes**.
 - **[test/fake_iphone_server.py](./test/fake_iphone_server.py)** — stands in for the iPhone app:
   real YouTube Music + iTunes artwork lookup and simulated GPS, so the head unit can be
   developed/tested today.
@@ -41,6 +43,9 @@ dependencies {
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+<!-- BLE transport (API 31+) -->
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
 <application ...>
     <service
@@ -106,3 +111,29 @@ simulated GPS track (a car driving a loop at ~60 km/h).
 | phone → HU | binary | JPEG bytes (only when `status=="ok"`, immediately after header) |
 | phone → HU | text | `{"type":"gps","ts","lat","lon","speedMps","headingDeg","altitudeM","hAccM"}` @ 1 Hz |
 | both | text | `{"type":"ping"}` / `{"type":"pong"}` every 10 s |
+
+## Bluetooth (BLE) transport
+
+The same info also flows over **BLE** — no hotspot needed. The iPhone advertises a
+custom GATT service (`7E400001-B5A3-F393-E0A9-E50E24DCCA9E`); the head unit uses
+[BleLinkClient.kt](./android/BleLinkClient.kt) (same `PhoneLinkClient.Listener`
+interface, so the dashboard code doesn't change):
+
+| Characteristic | UUID suffix | Direction | Content |
+|---|---|---|---|
+| GPS | `...0002` | notify | one JSON `gps` message per notification, 1 Hz |
+| TRACK | `...0003` | write | JSON `track` message from the head unit |
+| ART_META | `...0004` | notify | JSON artwork header incl. `chunks` count |
+| ART_DATA | `...0005` | notify | binary chunks: `seq:u16be, index:u16be` + payload |
+
+Extra Android permissions: `BLUETOOTH_SCAN` + `BLUETOOTH_CONNECT` (API 31+).
+
+Notes:
+- BLE moves ~5–15 KB/s, so the iPhone downscales artwork to ~300 px for this
+  transport (Wi-Fi still gets the full 600 px).
+- iPhones can't do classic Bluetooth SPP to non-MFi devices — BLE GATT is the
+  supported path.
+- When the iPhone app is backgrounded, iOS hides the advertised service UUID
+  from Android scanners. Connect once while the app is in the foreground; the
+  established connection then survives locking/backgrounding
+  (`bluetooth-peripheral` background mode is enabled).

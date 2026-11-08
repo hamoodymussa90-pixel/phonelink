@@ -1,15 +1,17 @@
 # PhoneLink — iPhone companion app
 
-SwiftUI app implementing the protocol-v1 **server** side:
+SwiftUI app implementing the protocol-v1 **server** side over two transports:
+**Wi-Fi hotspot WebSocket** (fast) and **Bluetooth LE GATT** (no hotspot needed).
 
 | File | Role |
 |---|---|
 | `PhoneLinkApp.swift` | App entry point |
-| `LinkCoordinator.swift` | Glue + published UI state, stale-artwork guard via `seq` |
+| `LinkCoordinator.swift` | Glue + published UI state, stale-artwork guard via `seq`; GPS broadcast on both transports, artwork reply on the requesting transport |
 | `LinkServer.swift` | WebSocket server on port **8777** (Network.framework `NWListener`, zero dependencies) |
+| `BLELinkServer.swift` | **BLE peripheral**: custom GATT service with GPS notify, track write, chunked artwork notify (artwork auto-downscaled to ~300 px) |
 | `ArtworkService.swift` | Artwork chain: LRU cache → **YouTube Music** (InnerTube, unofficial — matches YT-exclusive uploads) → **iTunes Search API** fallback |
 | `LocationStreamer.swift` | CoreLocation @ 1 Hz, background-capable, maps to protocol `gps` JSON |
-| `ContentView.swift` | Status screen: clients, now playing, artwork preview, GPS |
+| `ContentView.swift` | Status screen: WS clients, BLE subscribers, now playing, artwork preview, GPS |
 
 ## Option A — IPA from CI (no Mac needed)
 
@@ -24,16 +26,19 @@ https://github.com/hamoodymussa90-pixel/phonelink/releases/latest/download/Phone
 ## Option B — Build in Xcode (Mac)
 
 1. Install XcodeGen (`brew install xcodegen`), run `xcodegen generate` in this folder
-   (uses `project.yml`, which also generates `Info.plist` with the location/background keys).
+   (uses `project.yml`, which also generates `Info.plist` with the location/Bluetooth/background keys).
 2. Open `PhoneLink.xcodeproj`, set your Team under Signing & Capabilities, build to the phone.
 
 ## First run
 
-1. Launch the app, grant Location **Always** when prompted
+1. Launch the app, grant Location **Always** and **Bluetooth** when prompted
    (Settings → PhoneLink → Location → *Always* — this is what keeps GPS + artwork
    flowing while the phone is locked).
-2. Turn on **Personal Hotspot**; join the head unit to it.
-3. The head unit connects to `ws://172.20.10.1:8777` and everything flows.
+2. **Wi-Fi path:** turn on Personal Hotspot; join the head unit to it → it connects
+   to `ws://172.20.10.1:8777`.
+3. **BLE path:** keep the app in the foreground until the head unit's `BleLinkClient`
+   connects (iOS hides the advertised service UUID from Android scanners while
+   backgrounded); after that the connection survives locking.
 
 ## Verify from a laptop before the head unit is ready
 
@@ -52,8 +57,10 @@ Expect `OK gps`, `OK artwork` (source `ytmusic` or `itunes`), `SMOKE TEST PASSED
   ytmusicapi Python library uses). If Google changes the response shape,
   `ArtworkService` silently falls back to iTunes — artwork keeps working.
 - **Lock-screen behavior**: the active CoreLocation stream keeps the process
-  alive while locked, which also keeps the WebSocket server and artwork
-  lookups running. Do a 30-min locked-drive soak test to confirm on your
-  iOS version. Expect the blue location indicator.
+  alive while locked, which also keeps the WebSocket server, BLE notifications,
+  and artwork lookups running. Do a 30-min locked-drive soak test to confirm on
+  your iOS version. Expect the blue location indicator.
+- **BLE throughput** is ~5–15 KB/s: a 300 px artwork takes a few seconds per
+  track change; GPS at 1 Hz is unaffected. Prefer the Wi-Fi path when available.
 - iOS may pause hotspot clients aggressively if **Low Power Mode** is on;
   disable it in the car or keep the phone on a charger.
