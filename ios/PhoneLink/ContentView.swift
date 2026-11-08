@@ -9,6 +9,7 @@ struct ContentView: View {
                 Section("Link") {
                     LabeledContent("Server", value: "ws://172.20.10.1:8777")
                     LabeledContent("Head units connected", value: "\(coordinator.clientCount)")
+                    LabeledContent("BLE subscribers", value: "\(coordinator.bleSubscriberCount)")
                 }
 
                 Section("Now Playing (from head unit)") {

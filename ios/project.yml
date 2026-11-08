@@ -15,7 +15,9 @@ targets:
         CFBundleDisplayName: PhoneLink
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
-        UIBackgroundModes: [location]
+        UIBackgroundModes: [location, bluetooth-peripheral]
+        NSBluetoothAlwaysUsageDescription: >-
+          Sends GPS and album artwork to your car's head unit over Bluetooth.
         NSLocationAlwaysAndWhenInUseUsageDescription: >-
           Streams GPS speed and heading to your car's dashboard, also while the
           phone is locked.
