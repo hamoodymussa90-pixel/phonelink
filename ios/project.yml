@@ -25,6 +25,10 @@ targets:
           Streams GPS speed and heading to your car's dashboard.
         NSLocalNetworkUsageDescription: >-
           Connects to your car's head unit over your Personal Hotspot.
+        NSLocationTemporaryUsageDescriptionDictionary:
+          Navigation: >-
+            Precise location is required to show live speed and position on
+            your car's dashboard.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.phonelink

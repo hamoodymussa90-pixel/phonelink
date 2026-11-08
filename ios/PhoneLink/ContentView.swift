@@ -29,6 +29,7 @@ struct ContentView: View {
                 }
 
                 Section("GPS stream") {
+                    LabeledContent("Permission", value: coordinator.gpsStatus)
                     Text(coordinator.lastGps)
                         .font(.system(.body, design: .monospaced))
                 }

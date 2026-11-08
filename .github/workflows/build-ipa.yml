@@ -1,4 +1,4 @@
-name: Build unsigned IPA
+name: Build apps
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-ios:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +55,39 @@ jobs:
           tag_name: latest
           name: PhoneLink (latest build)
           body: >
-            Unsigned IPA built from the latest commit.
-            Install from Windows with Sideloadly (sideloadly.io): plug in the
-            iPhone, drop this IPA in, sign in with your Apple ID.
+            iPhone app (PhoneLink-unsigned.ipa — install with Sideloadly) and
+            Android head-unit app (HeadUnitLink.apk — install directly), built
+            from the latest commit.
           files: ios/PhoneLink-unsigned.ipa
+
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        run: gradle -p android-app :app:assembleDebug
+
+      - name: Rename APK
+        run: cp android-app/app/build/outputs/apk/debug/app-debug.apk HeadUnitLink.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeadUnitLink-apk
+          path: HeadUnitLink.apk
+
+      - name: Attach APK to "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          files: HeadUnitLink.apk

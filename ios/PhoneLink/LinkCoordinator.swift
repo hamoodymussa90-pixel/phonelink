@@ -15,6 +15,7 @@ final class LinkCoordinator: ObservableObject {
     @Published var lastArtwork: UIImage?
     @Published var lastArtworkSource = "—"
     @Published var lastGps = "waiting for fix…"
+    @Published var gpsStatus = "—"
 
     private let server = LinkServer(port: 8777)
     private let ble = BLELinkServer()
@@ -59,6 +60,10 @@ final class LinkCoordinator: ObservableObject {
                 self.lastGps = String(format: "%.5f, %.5f  %@", loc.coordinate.latitude,
                                       loc.coordinate.longitude, kmh)
             }
+        }
+
+        location.onStatus = { [weak self] status in
+            Task { @MainActor in self?.gpsStatus = status }
         }
 
         server.start()
